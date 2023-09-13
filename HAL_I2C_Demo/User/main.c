@@ -26,23 +26,24 @@ int main(void)
 	EEPROM_Read_OneByte(0x30,&Data);		//读出eeprom地址为0x30的空间中存放的数据
 	Delay_ms(10);		//延时10毫秒
 	printf("EEPROM读取地址:0x30\r\n");		//打印指定语句
+	Delay_ms(10);		//延时10毫秒
 	printf("EEPROM读出值:%d\r\n",Data);		//打印EEPROM读出值
 
 	while(1)
 	{
-		if(KEY_0_FLAG == 1)
+		if(KEY_0_FLAG == 1)		//当按键0被按下
 		{
-			if(HAL_GPIO_ReadPin(KEY_PORT, KEY_0) == RESET)
+			if(HAL_GPIO_ReadPin(KEY_PORT, KEY_0) == RESET)		//消抖
 			{
-				if(HAL_GPIO_ReadPin(KEY_PORT, KEY_0) == RESET)
+				if(HAL_GPIO_ReadPin(KEY_PORT, KEY_0) == RESET)	//消抖
 				{
-					if(Lock_FLAG0 == 0)
+					if(Lock_FLAG0 == 0)		//松手检测
 					{
-						Lock_FLAG0 = 1;
-						AA -= 1;
-						EEPROM_Write_OneByte(0x30,&AA);
+						Lock_FLAG0 = 1;		//持续按下按键0，其自锁标志变量置1
+						AA -= 1;		//执行减一指令
+						EEPROM_Write_OneByte(0x30,&AA);		//在eeprom地址为0x30的空间写入变量AA存放的数据
 						Delay_ms(10);
-						EEPROM_Read_OneByte(0x30,&Data);
+						EEPROM_Read_OneByte(0x30,&Data);	//读出eeprom地址为0x30的空间中存放的数据
 						Delay_ms(10);
 						printf("写入的值为:%d\r\n",Data);
 					}
@@ -68,15 +69,15 @@ int main(void)
 				}
 			}
 		}
-		if(HAL_GPIO_ReadPin(KEY_PORT, KEY_0) == SET)
+		if(HAL_GPIO_ReadPin(KEY_PORT, KEY_0) == SET)		//判断按键0是否松开
 		{
-			KEY_0_FLAG = 0;
-			Lock_FLAG0 = 0;
+			KEY_0_FLAG = 0;		//置位按键0按下标志
+			Lock_FLAG0 = 0;		//置位按键0长按自锁标志
 		}
-		if(HAL_GPIO_ReadPin(KEY_PORT, KEY_1) == SET)
+		if(HAL_GPIO_ReadPin(KEY_PORT, KEY_1) == SET)		//判断按键1是否松开
 		{
-			KEY_1_FLAG = 0;
-			Lock_FLAG1 = 0;
+			KEY_1_FLAG = 1;		//置位按键1按下标志
+			Lock_FLAG1 = 1;		//置位按键1长按自锁标志
 		}
 	}
 }

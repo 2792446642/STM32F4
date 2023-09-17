@@ -2,7 +2,7 @@
 #include "ec11.h"
 
 /*用户自定义全局变量*/
-uint32_t EC11_Count = 0;    //EC11计数变量
+float EC11_Count = 0;    //EC11计数变量
 /*按键初始化函数*/
 void EC11_Init(void)
 {
@@ -39,9 +39,9 @@ void EXTI9_5_IRQHandler(void)
             {
                 if(EC11_Count > 0)
                 {
-                    EC11_Count -= 10;
+                    EC11_Count -= 10.5f;
                     UART1_Transmit("逆时针转动:");
-                    printf("%d\r\n",EC11_Count);
+                    printf("%.2f\r\n",EC11_Count);
                 }
             }                
         }
@@ -52,9 +52,9 @@ void EXTI9_5_IRQHandler(void)
             {
                 if(EC11_Count < 4000)
                 {
-                    EC11_Count += 10;
+                    EC11_Count += 10.5f;
                     UART1_Transmit("顺时针转动:");
-                    printf("%d\r\n",EC11_Count);
+                    printf("%.2f\r\n",EC11_Count);
                 }              
             }
         }

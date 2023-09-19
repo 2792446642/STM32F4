@@ -2,12 +2,14 @@
 #include "encoder.h"
 
 /*用户自定义变量*/
+TIM_HandleTypeDef TIM2_InitStruct = {0};
 TIM_HandleTypeDef TIM3_InitStruct = {0};
 TIM_HandleTypeDef TIM4_InitStruct = {0};
 uint8_t TIM4_IT_Flag = 0;
 uint16_t Count = 0;
 uint8_t Dir = 0;
 float Speed = 0;
+
 /*编码器初始化配置函数*/
 void Encoder_Init(void)
 {
@@ -15,8 +17,38 @@ void Encoder_Init(void)
     TIM_Encoder_InitTypeDef TIM3_Encoder_InitStruct = {0};
     TIM_MasterConfigTypeDef  TIM3_MasterConfigInitStruct = {0};
 
-    TIM_ClockConfigTypeDef sClockSourceConfig = {0};
     TIM_MasterConfigTypeDef sMasterConfig = {0};
+    TIM_OC_InitTypeDef sConfigOC = {0};
+    PWM_CLK_ENABLE;
+    PWM_Port_CLK_ENABLE;
+    GPIO_InitStruct.Pin = PWM_Channel_1;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF1_TIM2;
+    HAL_GPIO_Init(PWM_Port, &GPIO_InitStruct);
+
+    TIM2_InitStruct.Instance = TIM2;
+    TIM2_InitStruct.Init.Prescaler = 167;
+    TIM2_InitStruct.Init.CounterMode = TIM_COUNTERMODE_UP;
+    TIM2_InitStruct.Init.Period = 999;
+    TIM2_InitStruct.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    TIM2_InitStruct.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+    HAL_TIM_PWM_Init(&TIM2_InitStruct);
+   
+    sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+    HAL_TIMEx_MasterConfigSynchronization(&TIM2_InitStruct, &sMasterConfig);
+
+    sConfigOC.OCMode = TIM_OCMODE_PWM1;
+    sConfigOC.Pulse = 799;
+    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+    sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+    HAL_TIM_PWM_ConfigChannel(&TIM2_InitStruct, &sConfigOC, TIM_CHANNEL_1);
+    HAL_TIM_PWM_Start(&TIM2_InitStruct, TIM_CHANNEL_1);
+
+    TIM_ClockConfigTypeDef TIM4_sClockSourceConfig = {0};
+    TIM_MasterConfigTypeDef TIM4_sMasterConfig = {0};
 
     Encoder_CLK_ENABLE;     //开启定时器编码器模块时钟
     Encoder_Port_CLK_ENABLE;    //开启定时器编码器端口时钟
@@ -67,16 +99,17 @@ void Encoder_Init(void)
     TIM4_InitStruct.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;    //失能自动重装载预装载功能
     HAL_TIM_Base_Init(&TIM4_InitStruct);        //定时器4配置初始化
 
-    sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;      //定时时钟来源为单片机内部
-    HAL_TIM_ConfigClockSource(&TIM4_InitStruct, &sClockSourceConfig);       //定时器4时钟源配置初始化
+    TIM4_sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;      //定时时钟来源为单片机内部
+    HAL_TIM_ConfigClockSource(&TIM4_InitStruct, &TIM4_sClockSourceConfig);       //定时器4时钟源配置初始化
 
-    sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-    HAL_TIMEx_MasterConfigSynchronization(&TIM4_InitStruct, &sMasterConfig);
+    TIM4_sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+    TIM4_sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+    HAL_TIMEx_MasterConfigSynchronization(&TIM4_InitStruct, &TIM4_sMasterConfig);
 
     HAL_TIM_Base_Start_IT(&TIM4_InitStruct);       //启动定时器4
     HAL_TIM_Encoder_Start(&TIM3_InitStruct,TIM_CHANNEL_ALL);       //启动定时器3编码器计数功能
 }
+
 
 /*定时器3编码器模块计数函数*/
 void Encoder_Count(void)
@@ -84,11 +117,14 @@ void Encoder_Count(void)
     if(TIM4_IT_Flag == 1)       //500毫秒执行一次
     {
         TIM4_IT_Flag = 0;       //清零定时中断标志变量
-        Count = __HAL_TIM_GetCounter(&TIM3_InitStruct);     //获取编码器计数值
         Dir = __HAL_TIM_IS_TIM_COUNTING_DOWN(&TIM3_InitStruct);     //获取转向信息
+        Count = __HAL_TIM_GetCounter(&TIM3_InitStruct);     //获取编码器计数值      
         if(Dir == 1)    //电机反转
         {
-            Count = 65535 - Count;
+            if(Count != 0)
+            {
+                Count = 65535 - Count;
+            }           
         }
         Speed = (float)(Count/100.0f/2.0f)*60.0f;       //计算电机实时转速
         printf("main.t2.txt=\"当前转速: %.2f r/min\"\xff\xff\xff",Speed);       //打印电机转速到串口屏
@@ -96,11 +132,11 @@ void Encoder_Count(void)
     }
 }
 
+
 /*定时器4中断函数*/
 void TIM4_IRQHandler(void)
 {
     HAL_TIM_IRQHandler(&TIM4_InitStruct);       //清除中断标志位
     TIM4_IT_Flag = 1;       //置1定时中断标志变量
 }
-
  

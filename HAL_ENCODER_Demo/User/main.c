@@ -12,6 +12,7 @@ int main(void)
 	Delay_Init(168);		//初始化延时函数配置
 	UART1_Init(115200);		//初始化串口1配置
 	Encoder_Init();		//初始化编码器配置
+
 	while(1)
 	{
 		Encoder_Count();
